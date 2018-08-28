@@ -12,7 +12,6 @@ import {
   CardTitle,
   CardSubtitle,
   CardText,
-  Button,
   Badge
 } from "reactstrap";
 
@@ -260,7 +259,7 @@ class App extends Component {
     const index = initialMarkers.findIndex(m => {
       return m.name === marker.name;
     });
-    if (index != -1) {
+    if (index !== -1) {
       marker["attributes"] = {
         icon: initialMarkers[index].icon,
         photo_ref: initialMarkers[index].photos[0].photo_reference,
@@ -279,7 +278,7 @@ class App extends Component {
     const index = markerObjects.findIndex(m => {
       return m.props.name === name;
     });
-    if (index != -1) {
+    if (index !== -1) {
       return markerObjects[index];
     }
     return undefined;
@@ -356,7 +355,14 @@ class App extends Component {
     return (
       <div className="main-wrapper">
         <div className="search-input">
-          <Input type="text" onKeyUp={this.handleKeyUp} placeholder="Filter" />
+          <label htmlFor="filter-input">Prenzlauerberg Night Life</label>
+          <Input
+            id="filter-input"
+            type="text"
+            onKeyUp={this.handleKeyUp}
+            placeholder="Filter"
+            aria-label="Prenzlauerberg Night Life"
+          />
           <ListGroup>
             {this.state.markers.map(marker => {
               return (
@@ -365,6 +371,7 @@ class App extends Component {
                   action
                   onClick={this.onMarkerListClick.bind(null, marker)}
                   key={marker.id}
+                  value={marker.name}
                 >
                   {marker.name}
                 </ListGroupItem>
@@ -374,6 +381,7 @@ class App extends Component {
         </div>
         <div className="map-wrapper">
           <Map
+            role="application"
             google={this.props.google}
             zoom={14}
             initialCenter={{
@@ -400,40 +408,42 @@ class App extends Component {
                 visible={this.state.showInfoWindow}
                 onClose={this.onInfoWindowClose}
               >
-                <Card>
-                  <CardImg
-                    top
-                    width="100%"
-                    src={
-                      "https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=" +
-                      (this.state.selectedPlace &&
-                      this.state.selectedPlace.attributes.photo_ref
-                        ? this.state.selectedPlace.attributes.photo_ref
-                        : "") +
-                      "&key=AIzaSyAqjyL80DwXnkqVQ_NKXMOpFH_guLDGVhs"
-                    }
-                    alt="Venue image"
-                  />
-                  <CardBody>
-                    <CardTitle>
-                      <Badge color="white">
-                        <img
-                          style={{ maxWidth: "12px" }}
-                          src={this.state.selectedPlace.attributes.icon}
-                          alt="Card image cap"
-                        />
-                      </Badge>{" "}
-                      {this.state.selectedPlace.name}
-                    </CardTitle>
-                    <CardSubtitle>
-                      {this.state.selectedPlace.attributes.formatted_address}
-                    </CardSubtitle>
-                    <CardText>
-                      <strong>Distance: </strong>{" "}
-                      {this.state.selectedPlace.distance} meters
-                    </CardText>
-                  </CardBody>
-                </Card>
+                <div className="card-container">
+                  <Card>
+                    <CardImg
+                      top
+                      width="100%"
+                      src={
+                        "https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=" +
+                        (this.state.selectedPlace &&
+                        this.state.selectedPlace.attributes.photo_ref
+                          ? this.state.selectedPlace.attributes.photo_ref
+                          : "") +
+                        "&key=AIzaSyAqjyL80DwXnkqVQ_NKXMOpFH_guLDGVhs"
+                      }
+                      alt={this.state.selectedPlace.name}
+                    />
+                    <CardBody>
+                      <CardTitle>
+                        <Badge color="white">
+                          <img
+                            style={{ maxWidth: "12px" }}
+                            src={this.state.selectedPlace.attributes.icon}
+                            alt=""
+                          />
+                        </Badge>{" "}
+                        {this.state.selectedPlace.name}
+                      </CardTitle>
+                      <CardSubtitle>
+                        {this.state.selectedPlace.attributes.formatted_address}
+                      </CardSubtitle>
+                      <CardText>
+                        <strong>Distance: </strong>{" "}
+                        {this.state.selectedPlace.distance} meters
+                      </CardText>
+                    </CardBody>
+                  </Card>
+                </div>
               </InfoWindow>
             ) : (
               ""
