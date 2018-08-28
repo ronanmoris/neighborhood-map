@@ -26,7 +26,6 @@ body {
 .search-input label {
   text-align: center;
   padding-top: 10px;
-  /* letter-spacing: 0.2em; */
   font-size: 1.1em;
   font-weight: 800;
 }
@@ -38,6 +37,7 @@ input#filter-input {
 button.list-group-item-action.list-group-item {
   color: #3b4ed1;
 }
+
 .map-wrapper {
   position: relative;
   width: 80%;
