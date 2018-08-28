@@ -1,8 +1,23 @@
 import React, { Component } from "react";
 import "./App.css";
+import axios from "axios";
 import { Map, InfoWindow, Marker, GoogleApiWrapper } from "google-maps-react";
-import { ListGroup, ListGroupItem, Input } from "reactstrap";
+import {
+  ListGroup,
+  ListGroupItem,
+  Input,
+  Card,
+  CardImg,
+  CardBody,
+  CardTitle,
+  CardSubtitle,
+  CardText,
+  Button,
+  Badge
+} from "reactstrap";
 
+// GLOBAL VARIABLES
+var markerObjects = [];
 var initialMarkers = [
   {
     formatted_address: "Knaackstraße 97, 10435 Berlin, Germany",
@@ -185,6 +200,48 @@ var initialMarkers = [
     reference:
       "CmRbAAAAtRBGZX11KBMZENVLkmn25jPAwKhaCSD84fMqDoyugt1wfh3mDovvUhmdj55T6ZXKs2kIn4rnJYI912xSiJVw2PEzJViL8cDhlnrazRYWMzaJiX7AVi3x9ROTQqA7SosqEhDkZ2gINF1txwoYlBV-IIw3GhTKOry--WoHUsxGHP7Wz60PKF3E1g",
     types: ["night_club", "point_of_interest", "establishment"]
+  },
+  {
+    formatted_address: "Saarbrücker Str. 24, 10405 Berlin, Germany",
+    geometry: {
+      location: {
+        lat: 52.5297252,
+        lng: 13.4123309
+      },
+      viewport: {
+        northeast: {
+          lat: 52.53119427989272,
+          lng: 13.41360757989272
+        },
+        southwest: {
+          lat: 52.52849462010727,
+          lng: 13.41090792010728
+        }
+      }
+    },
+    icon: "https://maps.gstatic.com/mapfiles/place_api/icons/bar-71.png",
+    id: "69d7777406900e969bee4a6b5cf9d9acc1109418",
+    name: "Roadrunner's Paradise",
+    photos: [
+      {
+        height: 1836,
+        html_attributions: [
+          '\u003ca href="https://maps.google.com/maps/contrib/100045901743541164585/photos"\u003eA Google User\u003c/a\u003e'
+        ],
+        photo_reference:
+          "CmRaAAAAf0rju1jYJSxyWcw4wRukMXXzP6H5YmScyRz21wHOo3H6YOG0CjuL5CpQNGoXrZydDNCEgIuGNSSEE85cWUMRchAXWjplmSeo-N8E4ixwjrIxCT3nL1Y1WYGNYUYR_x8mEhD_ZGowLo75y4gaiyC2jq3bGhQWWTgMYg5you8LvA8MH7GjQxW2gw",
+        width: 3264
+      }
+    ],
+    place_id: "ChIJU3OORx1OqEcRvq4DS6repfo",
+    plus_code: {
+      compound_code: "GCH6+VW Berlin, Germany",
+      global_code: "9F4MGCH6+VW"
+    },
+    rating: 4.5,
+    reference:
+      "CmRbAAAAn0gbDLyS_ayp_DyyklmHzjnvbOo2Rp2gnXrVBhMHFFz-8fZa_KbfYC7YUYTLmv2moWpx3MgNeLvN_ln-fxvaD3-okdiBhyRaWepR1Pyz9ut8pDGwnCMamqf1Yd2u81HhEhAX6fCmD2lZIaHlxSWCb5iZGhQxQl29RvfbJts8jAd49ss9q_bloQ",
+    types: ["night_club", "point_of_interest", "establishment"]
   }
 ];
 
@@ -192,37 +249,88 @@ class App extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      markerObjects: [],
       markers: initialMarkers,
-      selectedPlace: {
-        name: ""
-      }
+      selectedPlace: undefined,
+      showInfoWindow: false
     };
   }
 
-  onMarkerMounted = element => {
-    this.setState(prevState => ({
-      markerObjects: [...prevState.markerObjects, element.marker]
-    }));
-  };
-
-  onMarkerClick = (props, marker, e) => {
-    console.log(marker);
-  };
-
-  onMarkerListClick = (marker, e) => {
-    const index = this.state.markerObjects.findIndex(m => {
+  // MERGE MARKER INSTANCE REFERENCE WITH EXTRA ATTRIBUTES INTO ONE OBJECT
+  retrieveMarkerInfo = marker => {
+    const index = initialMarkers.findIndex(m => {
       return m.name === marker.name;
     });
-    const tabom = this.state.markerObjects[index];
-    console.log(tabom);
-    console.log(tabom.getAnimation());
-    tabom.setAnimation(window.google.maps.Animation.BOUNCE);
+    if (index != -1) {
+      marker["attributes"] = {
+        icon: initialMarkers[index].icon,
+        photo_ref: initialMarkers[index].photos[0].photo_reference,
+        formatted_address: initialMarkers[index].formatted_address
+      };
+    }
+    return marker;
+  };
+
+  handleFailure = e => {
+    alert("Sorry, something went wrong");
+  };
+
+  // RETRIEVE A MARKER INSTANCE BY PASSING IT'S NAME
+  getMarkerWithName = name => {
+    const index = markerObjects.findIndex(m => {
+      return m.props.name === name;
+    });
+    if (index != -1) {
+      return markerObjects[index];
+    }
+    return undefined;
+  };
+
+  // HANDLES EVENTS AFTER CLICKING ON A MARKER (LIST OR MARKER ITSELF)
+  updatedMarkerClicked = marker => {
+    this.animateMarker(marker);
+    marker = this.retrieveMarkerInfo(marker);
+    this.setState({ selectedPlace: marker, showInfoWindow: true });
+  };
+
+  // HANDLES THE CLICK ON THE MARKER LIST
+  // USES FOURSQUARE TO GET DISTANCE FROM DEFAULT CENTRAL POINT
+  onMarkerListClick = (marker, e) => {
+    let distanceFromCenter = 0;
+    this.searchFoursquare(marker.name).then(result => {
+      if (result.data.response.venues) {
+        distanceFromCenter = result.data.response.venues[0].location.distance;
+      }
+      const m = this.getMarkerWithName(marker.name);
+      m.marker["distance"] = distanceFromCenter;
+      this.updatedMarkerClicked(m.marker);
+    }, this.handleFailure);
+  };
+
+  // BOUNCING ANIMATION
+  animateMarker = m => {
+    if (m.getAnimation()) {
+      m.setAnimation(null);
+    }
+    m.setAnimation(1);
     setTimeout(function() {
-      tabom.setAnimation(null);
+      m.setAnimation(null);
     }, 700);
   };
 
+  // SAVING MARKERS OBJECTS REFERENCE SO IT CAN BE REUSED TO ANIMATE ETC...
+  onMarkerMounted = element => {
+    markerObjects = [...markerObjects, element];
+    if (markerObjects.length === initialMarkers.length) {
+      this.updatedMarkerClicked(element.marker);
+    }
+  };
+
+  // HANDLES MAP'S MARKER CLICK
+  onMarkerClick = (props, marker, e) => {
+    this.updatedMarkerClicked(marker);
+  };
+
+  // TEXT INPUT KEY UP HANDLER
   handleKeyUp = e => {
     this.setState({
       markers: initialMarkers.filter(marker =>
@@ -231,20 +339,30 @@ class App extends Component {
     });
   };
 
+  searchFoursquare = searchTerm => {
+    const apiURL =
+      "https://api.foursquare.com/v2/venues/search?v=20180323&client_id=WHQWHEIDM22SZA1FMVEVTSYMR0LZ3VS1NCGXVTGUVJIJB5FX&client_secret=21CTWEZXSSURJ1ONLSKNT1QV44CIWPQXTQWUFLGRW5DYXVJ4&";
+    const ll = "ll=52.553266,13.41552";
+    const query = "query=" + searchTerm;
+    const params = ll + "&" + query;
+    return axios.get(apiURL + params);
+  };
+
+  onInfoWindowClose = e => {
+    this.setState({ showInfoWindow: false });
+  };
+
   render() {
-    // const mapStyle = {
-    //   position: "relative",
-    //   width: "80%",
-    //   height: "100%"
-    // };
     return (
       <div className="main-wrapper">
         <div className="search-input">
           <Input type="text" onKeyUp={this.handleKeyUp} placeholder="Filter" />
           <ListGroup>
-            {initialMarkers.map(marker => {
+            {this.state.markers.map(marker => {
               return (
                 <ListGroupItem
+                  tag="button"
+                  action
                   onClick={this.onMarkerListClick.bind(null, marker)}
                   key={marker.id}
                 >
@@ -259,15 +377,15 @@ class App extends Component {
             google={this.props.google}
             zoom={14}
             initialCenter={{
-              lat: 52.553266,
-              lng: 13.41552
+              lat: 52.544244,
+              lng: 13.420559
             }}
           >
             {this.state.markers.map(marker => {
               return (
                 <Marker
-                  animation={this.props.google.maps.Animation.DROP}
                   ref={this.onMarkerMounted}
+                  animation={null}
                   key={marker.id}
                   onClick={this.onMarkerClick}
                   title={marker.title}
@@ -276,11 +394,50 @@ class App extends Component {
                 />
               );
             })}
-            <InfoWindow onClose={this.onInfoWindowClose}>
-              <div>
-                <h1>{this.state.selectedPlace.name}</h1>
-              </div>
-            </InfoWindow>
+            {this.state.selectedPlace ? (
+              <InfoWindow
+                marker={this.state.selectedPlace}
+                visible={this.state.showInfoWindow}
+                onClose={this.onInfoWindowClose}
+              >
+                <Card>
+                  <CardImg
+                    top
+                    width="100%"
+                    src={
+                      "https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=" +
+                      (this.state.selectedPlace &&
+                      this.state.selectedPlace.attributes.photo_ref
+                        ? this.state.selectedPlace.attributes.photo_ref
+                        : "") +
+                      "&key=AIzaSyAqjyL80DwXnkqVQ_NKXMOpFH_guLDGVhs"
+                    }
+                    alt="Venue image"
+                  />
+                  <CardBody>
+                    <CardTitle>
+                      <Badge color="white">
+                        <img
+                          style={{ maxWidth: "12px" }}
+                          src={this.state.selectedPlace.attributes.icon}
+                          alt="Card image cap"
+                        />
+                      </Badge>{" "}
+                      {this.state.selectedPlace.name}
+                    </CardTitle>
+                    <CardSubtitle>
+                      {this.state.selectedPlace.attributes.formatted_address}
+                    </CardSubtitle>
+                    <CardText>
+                      <strong>Distance: </strong>{" "}
+                      {this.state.selectedPlace.distance} meters
+                    </CardText>
+                  </CardBody>
+                </Card>
+              </InfoWindow>
+            ) : (
+              ""
+            )}
           </Map>
         </div>
       </div>
