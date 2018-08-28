@@ -252,6 +252,7 @@ class App extends Component {
       selectedPlace: undefined,
       showInfoWindow: false
     };
+    this.iw = React.createRef();
   }
 
   // MERGE MARKER INSTANCE REFERENCE WITH EXTRA ATTRIBUTES INTO ONE OBJECT
@@ -289,6 +290,9 @@ class App extends Component {
     this.animateMarker(marker);
     marker = this.retrieveMarkerInfo(marker);
     this.setState({ selectedPlace: marker, showInfoWindow: true });
+    if (document.getElementById("info-window")) {
+      window.location.hash = "#info-window";
+    }
   };
 
   // HANDLES THE CLICK ON THE MARKER LIST
@@ -367,13 +371,15 @@ class App extends Component {
             {this.state.markers.map(marker => {
               return (
                 <ListGroupItem
-                  tag="button"
+                  tag="li"
                   action
                   onClick={this.onMarkerListClick.bind(null, marker)}
                   key={marker.id}
                   value={marker.name}
                 >
-                  {marker.name}
+                  <a style={{ color: "black" }} href="#">
+                    {marker.name}
+                  </a>
                 </ListGroupItem>
               );
             })}
@@ -408,7 +414,7 @@ class App extends Component {
                 visible={this.state.showInfoWindow}
                 onClose={this.onInfoWindowClose}
               >
-                <div className="card-container">
+                <div id="info-window" className="card-container">
                   <Card>
                     <CardImg
                       top
