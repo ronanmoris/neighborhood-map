@@ -232,16 +232,15 @@ class App extends Component {
   };
 
   render() {
+    // const mapStyle = {
+    //   position: "relative",
+    //   width: "80%",
+    //   height: "100%"
+    // };
     return (
-      <div>
-        <Input
-          style={{
-            width: "20%"
-          }}
-          onKeyUp={this.handleKeyUp}
-          placeholder="Filter"
-        />
-        <div>
+      <div className="main-wrapper">
+        <div className="search-input">
+          <Input type="text" onKeyUp={this.handleKeyUp} placeholder="Filter" />
           <ListGroup>
             {initialMarkers.map(marker => {
               return (
@@ -255,41 +254,35 @@ class App extends Component {
             })}
           </ListGroup>
         </div>
-        <Map
-          style={{
-            width: "80%",
-            height: "100%",
-            position: "relative !important",
-            padding: 0,
-            margin: 0,
-            float: "right"
-          }}
-          google={this.props.google}
-          zoom={14}
-          initialCenter={{
-            lat: 52.553266,
-            lng: 13.41552
-          }}
-        >
-          {this.state.markers.map(marker => {
-            return (
-              <Marker
-                animation={this.props.google.maps.Animation.DROP}
-                ref={this.onMarkerMounted}
-                key={marker.id}
-                onClick={this.onMarkerClick}
-                title={marker.title}
-                name={marker.name}
-                position={marker.geometry.location}
-              />
-            );
-          })}
-          <InfoWindow onClose={this.onInfoWindowClose}>
-            <div>
-              <h1>{this.state.selectedPlace.name}</h1>
-            </div>
-          </InfoWindow>
-        </Map>
+        <div className="map-wrapper">
+          <Map
+            google={this.props.google}
+            zoom={14}
+            initialCenter={{
+              lat: 52.553266,
+              lng: 13.41552
+            }}
+          >
+            {this.state.markers.map(marker => {
+              return (
+                <Marker
+                  animation={this.props.google.maps.Animation.DROP}
+                  ref={this.onMarkerMounted}
+                  key={marker.id}
+                  onClick={this.onMarkerClick}
+                  title={marker.title}
+                  name={marker.name}
+                  position={marker.geometry.location}
+                />
+              );
+            })}
+            <InfoWindow onClose={this.onInfoWindowClose}>
+              <div>
+                <h1>{this.state.selectedPlace.name}</h1>
+              </div>
+            </InfoWindow>
+          </Map>
+        </div>
       </div>
     );
   }
